@@ -53,3 +53,17 @@ def test_builder_returns_top_reranked_documents(tmp_path) -> None:
     retriever = builder.build_hybrid_retriever(docs)
 
     assert len(retriever.invoke("alpha")) == 1
+
+
+def test_default_builder_does_not_load_models_until_build(monkeypatch, tmp_path) -> None:
+    import retriever.builder as builder_module
+
+    def fail_if_loaded(*args, **kwargs):
+        raise AssertionError("Heavy model loaded during RetrieverBuilder construction")
+
+    monkeypatch.setattr(builder_module, "ChromaVectorFactory", fail_if_loaded)
+    monkeypatch.setattr(builder_module, "CrossEncoderReranker", fail_if_loaded)
+
+    builder = RetrieverBuilder(chroma_root=tmp_path)
+
+    assert builder.chroma_root == tmp_path

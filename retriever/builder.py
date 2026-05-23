@@ -138,8 +138,9 @@ class RetrieverBuilder:
         reranker: Reranker | None = None,
         chroma_root: Path | str | None = None,
     ) -> None:
-        self.vector_factory = vector_factory or ChromaVectorFactory(embeddings=embeddings)
-        self.reranker = reranker or CrossEncoderReranker()
+        self.embeddings = embeddings
+        self.vector_factory = vector_factory
+        self.reranker = reranker
         self.chroma_root = Path(chroma_root or settings.CHROMA_DB_PATH)
 
     def build_hybrid_retriever(self, docs: list[Document]) -> HybridRetriever:
@@ -148,12 +149,14 @@ class RetrieverBuilder:
 
         file_hashes = [str(doc.metadata.get("file_hash", "")) for doc in docs]
         persist_directory = self.chroma_root / combined_file_hash(file_hashes)
-        vector_store = self.vector_factory.load_or_build(docs, str(persist_directory))
+        vector_factory = self.vector_factory or ChromaVectorFactory(embeddings=self.embeddings)
+        reranker = self.reranker or CrossEncoderReranker()
+        vector_store = vector_factory.load_or_build(docs, str(persist_directory))
 
         return HybridRetriever(
             docs=docs,
             vector_store=vector_store,
-            reranker=self.reranker,
+            reranker=reranker,
             search_k=settings.VECTOR_SEARCH_K,
             top_n=settings.RERANKER_TOP_N,
         )
