@@ -1,157 +1,102 @@
-from ibm_watsonx_ai.foundation_models import ModelInference
-from ibm_watsonx_ai import Credentials, APIClient
-from typing import Dict, List
-from langchain.schema import Document
-from loguru import logger
+from langchain_core.documents import Document
 
-credentials = Credentials(url="https://us-south.ml.cloud.ibm.com")
-client = APIClient(credentials)
+from config.settings import settings
+from utils.language import LANGUAGE_INSTRUCTION
+from utils.logging import logger
+
+from .llm_client import ChatClient, GrokClient
+from .research_agent import build_context
+
+
+VERIFICATION_PROMPT = (
+    "You are a fact-checking agent. Verify the draft answer against the source context.\n"
+    "Respond in this EXACT format:\n"
+    "Supported: YES/NO\n"
+    "Unsupported Claims: [list or None]\n"
+    "Contradictions: [list or None]\n"
+    "Relevant: YES/NO\n"
+    "Additional Details: [optional]\n"
+    f"{LANGUAGE_INSTRUCTION}"
+)
 
 
 class VerificationAgent:
-    def __init__(self):
-        logger.info("Initializing VerificationAgent...")
-        self.model = ModelInference(
-            model_id="ibm/granite-4-h-small",
-            credentials=credentials,
-            project_id="skills-network",
-            params={
-                "max_tokens": 200,
-                "temperature": 0.0,
-            }
-        )
-        logger.info("VerificationAgent initialized.")
+    EXPECTED_KEYS = {
+        "Supported",
+        "Unsupported Claims",
+        "Contradictions",
+        "Relevant",
+        "Additional Details",
+    }
 
-    def sanitize_response(self, response_text: str) -> str:
-        return response_text.strip()
+    def __init__(self, client: ChatClient | None = None, model: str | None = None) -> None:
+        self.client = client or GrokClient()
+        self.model = model or settings.VERIFICATION_MODEL
 
-    def generate_prompt(self, answer: str, context: str) -> str:
-        return f"""You are an AI assistant designed to verify the accuracy and relevance of answers based on provided context.
-
-**Instructions:**
-- Verify the following answer against the provided context.
-- Check for:
-  1. Direct/indirect factual support (YES/NO)
-  2. Unsupported claims (list any if present)
-  3. Contradictions (list any if present)
-  4. Relevance to the question (YES/NO)
-- Respond in the exact format specified below without adding any unrelated information.
-
-**Format:**
-Supported: YES/NO
-Unsupported Claims: [item1, item2, ...]
-Contradictions: [item1, item2, ...]
-Relevant: YES/NO
-Additional Details: [Any extra information or explanations]
-
-**Answer:** {answer}
-**Context:**
-{context}
-
-**Respond ONLY with the above format.**"""
-
-    def parse_verification_response(self, response_text: str) -> Dict:
-        try:
-            lines = response_text.split('\n')
-            verification = {}
-            for line in lines:
-                if ':' in line:
-                    key, value = line.split(':', 1)
-                    key = key.strip().capitalize()
-                    value = value.strip()
-                    if key in {"Supported", "Unsupported claims", "Contradictions", "Relevant", "Additional details"}:
-                        if key in {"Unsupported claims", "Contradictions"}:
-                            if value.startswith('[') and value.endswith(']'):
-                                items = value[1:-1].split(',')
-                                verification[key] = [i.strip().strip('"').strip("'") for i in items if i.strip()]
-                            else:
-                                verification[key] = []
-                        elif key == "Additional details":
-                            verification[key] = value
-                        else:
-                            verification[key] = value.upper()
-            for key in ["Supported", "Unsupported Claims", "Contradictions", "Relevant", "Additional Details"]:
-                if key not in verification:
-                    if key in {"Unsupported Claims", "Contradictions"}:
-                        verification[key] = []
-                    elif key == "Additional Details":
-                        verification[key] = ""
-                    else:
-                        verification[key] = "NO"
-            return verification
-        except Exception as e:
-            logger.error(f"Error parsing verification response: {e}")
-            return None
-
-    def format_verification_report(self, verification: Dict) -> str:
-        supported = verification.get("Supported", "NO")
-        unsupported_claims = verification.get("Unsupported Claims", [])
-        contradictions = verification.get("Contradictions", [])
-        relevant = verification.get("Relevant", "NO")
-        additional_details = verification.get("Additional Details", "")
-
-        report = f"**Supported:** {supported}\n"
-        report += f"**Unsupported Claims:** {', '.join(unsupported_claims) if unsupported_claims else 'None'}\n"
-        report += f"**Contradictions:** {', '.join(contradictions) if contradictions else 'None'}\n"
-        report += f"**Relevant:** {relevant}\n"
-        report += f"**Additional Details:** {additional_details if additional_details else 'None'}\n"
-        return report
-
-    def check(self, answer: str, documents: List[Document]) -> Dict:
+    def check(self, answer: str, documents: list[Document]) -> dict[str, str]:
         logger.debug(f"VerificationAgent.check | answer_len={len(answer)} | docs={len(documents)}")
-
-        context = "\n\n".join([doc.page_content for doc in documents])
-        logger.debug(f"Context length: {len(context)} chars")
-
-        prompt = self.generate_prompt(answer, context)
-
-        try:
-            response = self.model.chat(
-                messages=[{"role": "user", "content": prompt}]
-            )
-            logger.debug("LLM response received.")
-        except Exception as e:
-            logger.error(f"Model inference error: {e}")
-            raise RuntimeError("Failed to verify answer.") from e
-
-        try:
-            llm_response = response['choices'][0]['message']['content'].strip()
-            logger.debug(f"Raw response preview: {llm_response[:120]}...")
-        except (IndexError, KeyError) as e:
-            logger.error(f"Unexpected response structure: {e}")
-            verification_report = {
-                "Supported": "NO", "Unsupported Claims": [],
-                "Contradictions": [], "Relevant": "NO",
-                "Additional Details": "Invalid response structure from the model."
-            }
-            return {
-                "verification_report": self.format_verification_report(verification_report),
-                "context_used": context,
-            }
-
-        sanitized = self.sanitize_response(llm_response) if llm_response else ""
-
-        if not sanitized:
-            logger.warning("LLM returned empty response.")
-            verification_report = {
-                "Supported": "NO", "Unsupported Claims": [],
-                "Contradictions": [], "Relevant": "NO",
-                "Additional Details": "Empty response from the model."
-            }
-        else:
-            verification_report = self.parse_verification_response(sanitized)
-            if verification_report is None:
-                logger.warning("LLM response did not match expected format — using default.")
-                verification_report = {
-                    "Supported": "NO", "Unsupported Claims": [],
-                    "Contradictions": [], "Relevant": "NO",
-                    "Additional Details": "Failed to parse the model's response."
-                }
-
-        formatted = self.format_verification_report(verification_report)
-        logger.debug(f"Verification report:\n{formatted}")
-
+        context = build_context(documents)
+        response = self.client.complete(
+            model=self.model,
+            messages=[
+                {"role": "system", "content": VERIFICATION_PROMPT},
+                {"role": "user", "content": f"Answer: {answer}\n\nContext:\n{context}"},
+            ],
+            temperature=0.0,
+            max_tokens=512,
+        )
+        parsed = self.parse_verification_response(response)
         return {
-            "verification_report": formatted,
+            "verification_report": self.format_verification_report(parsed),
             "context_used": context,
         }
+
+    def parse_verification_response(self, response_text: str) -> dict[str, object]:
+        parsed: dict[str, object] = {}
+        aliases = {
+            "unsupported claims": "Unsupported Claims",
+            "additional details": "Additional Details",
+        }
+
+        for line in response_text.splitlines():
+            if ":" not in line:
+                continue
+            raw_key, raw_value = line.split(":", 1)
+            normalized_key = aliases.get(raw_key.strip().lower(), raw_key.strip().title())
+            if normalized_key not in self.EXPECTED_KEYS:
+                continue
+            value = raw_value.strip()
+            if normalized_key in {"Unsupported Claims", "Contradictions"}:
+                parsed[normalized_key] = self._parse_list(value)
+            elif normalized_key in {"Supported", "Relevant"}:
+                parsed[normalized_key] = "YES" if value.upper().startswith("YES") else "NO"
+            else:
+                parsed[normalized_key] = value
+
+        parsed.setdefault("Supported", "NO")
+        parsed.setdefault("Unsupported Claims", [])
+        parsed.setdefault("Contradictions", [])
+        parsed.setdefault("Relevant", "NO")
+        parsed.setdefault("Additional Details", "")
+        return parsed
+
+    def _parse_list(self, value: str) -> list[str]:
+        if not value or value.lower() == "none":
+            return []
+        if value.startswith("[") and value.endswith("]"):
+            inner = value[1:-1].strip()
+            if not inner or inner.lower() == "none":
+                return []
+            return [item.strip().strip("\"'") for item in inner.split(",") if item.strip()]
+        return [value]
+
+    def format_verification_report(self, verification: dict[str, object]) -> str:
+        unsupported = verification.get("Unsupported Claims") or []
+        contradictions = verification.get("Contradictions") or []
+        return (
+            f"Supported: {verification.get('Supported', 'NO')}\n"
+            f"Unsupported Claims: {', '.join(unsupported) if unsupported else 'None'}\n"
+            f"Contradictions: {', '.join(contradictions) if contradictions else 'None'}\n"
+            f"Relevant: {verification.get('Relevant', 'NO')}\n"
+            f"Additional Details: {verification.get('Additional Details') or 'None'}"
+        )

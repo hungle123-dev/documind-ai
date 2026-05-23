@@ -1,6 +1,13 @@
 from loguru import logger
 
 
+LANGUAGE_INSTRUCTION = """
+Detect the language of the user's question and respond in the SAME language.
+If the question is in Vietnamese, respond entirely in Vietnamese.
+If the question is in English, respond entirely in English.
+"""
+
+
 VIETNAMESE_DIACRITICS = set(
     "ăâđêôơư"
     "áàảãạắằẳẵặấầẩẫậéèẻẽẹếềểễệ"
