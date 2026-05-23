@@ -1,11 +1,23 @@
 from loguru import logger
 
 
+VIETNAMESE_DIACRITICS = set(
+    "ăâđêôơư"
+    "áàảãạắằẳẵặấầẩẫậéèẻẽẹếềểễệ"
+    "íìỉĩịóòỏõọốồổỗộớờởỡợúùủũụứừửữựýỳỷỹỵ"
+)
+
+
 def detect_language(text: str) -> str:
     """Return 'vi' or 'en' based on text content."""
+    sample = text[:500].lower()
+    if any(char in VIETNAMESE_DIACRITICS for char in sample):
+        return "vi"
+
     try:
         from langdetect import detect
-        lang = detect(text[:500])  # sample first 500 chars for speed
+
+        lang = detect(sample)
         return "vi" if lang == "vi" else "en"
     except Exception:
         return "en"
