@@ -10,3 +10,5 @@ venv/
 .DS_Store
 .claude/
 *.pkl
+eval/results.json
+eval/ragas_results.json

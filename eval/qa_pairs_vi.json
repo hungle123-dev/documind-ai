@@ -1,0 +1,17 @@
+[
+  {"question": "Muc tieu chinh cua tai lieu la gi?", "ground_truth": "Cau tra loi can tom tat muc tieu chinh duoc neu trong tai lieu."},
+  {"question": "Nhung diem quan trong nhat trong phan gioi thieu la gi?", "ground_truth": "Cau tra loi can dua tren cac y chinh trong phan gioi thieu."},
+  {"question": "Tai lieu de cap den nhung doi tuong nao?", "ground_truth": "Cau tra loi can liet ke cac doi tuong hoac nhom lien quan trong tai lieu."},
+  {"question": "Cac so lieu quan trong nao duoc neu trong tai lieu?", "ground_truth": "Cau tra loi can trich cac so lieu co trong nguon va khong tu suy dien."},
+  {"question": "Ket luan chinh cua tai lieu la gi?", "ground_truth": "Cau tra loi can tom tat ket luan dua tren nguon."},
+  {"question": "Tai lieu co de xuat hanh dong nao khong?", "ground_truth": "Cau tra loi can neu cac hanh dong hoac khuyen nghi neu co."},
+  {"question": "Rui ro hoac han che nao duoc nhac den?", "ground_truth": "Cau tra loi can chi dua vao cac rui ro hoac han che trong tai lieu."},
+  {"question": "Quy trinh duoc mo ta gom nhung buoc nao?", "ground_truth": "Cau tra loi can sap xep cac buoc theo thu tu trong tai lieu."},
+  {"question": "Cac ben lien quan trong tai lieu la ai?", "ground_truth": "Cau tra loi can neu cac ben lien quan duoc tai lieu nhac den."},
+  {"question": "Tai lieu so sanh nhung lua chon nao?", "ground_truth": "Cau tra loi can neu cac lua chon va tieu chi so sanh tu nguon."},
+  {"question": "Noi dung nao lien quan den thoi gian hoac moc thoi gian?", "ground_truth": "Cau tra loi can trich cac moc thoi gian co trong tai lieu."},
+  {"question": "Noi dung nao lien quan den chi phi hoac nguon luc?", "ground_truth": "Cau tra loi can dua tren thong tin chi phi hoac nguon luc trong tai lieu."},
+  {"question": "Phan nao cua tai lieu ho tro cau tra loi nay?", "ground_truth": "Cau tra loi can dan nguon den phan, trang, hoac doan lien quan."},
+  {"question": "Tai lieu co mau thuan noi bo nao khong?", "ground_truth": "Cau tra loi can neu mau thuan neu nguon co, hoac noi khong thay bang chung."},
+  {"question": "Neu thong tin khong du, can noi nhu the nao?", "ground_truth": "Cau tra loi can thua nhan nguon khong du thay vi suy doan."}
+]

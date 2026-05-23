@@ -1,0 +1,10 @@
+services:
+  documind-ai:
+    build: .
+    ports:
+      - "7860:7860"
+    env_file:
+      - .env
+    volumes:
+      - ./document_cache:/app/document_cache
+      - ./chroma_db:/app/chroma_db

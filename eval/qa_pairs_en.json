@@ -1,0 +1,17 @@
+[
+  {"question": "What is the main purpose of the document?", "ground_truth": "The answer should summarize the main purpose stated in the document."},
+  {"question": "What are the most important points in the introduction?", "ground_truth": "The answer should be grounded in the key points from the introduction."},
+  {"question": "Which audiences or entities does the document mention?", "ground_truth": "The answer should list only audiences or entities mentioned in the source."},
+  {"question": "Which important numbers or metrics are stated?", "ground_truth": "The answer should quote metrics from the source without inventing values."},
+  {"question": "What is the document's main conclusion?", "ground_truth": "The answer should summarize the conclusion based on the source."},
+  {"question": "Does the document recommend any actions?", "ground_truth": "The answer should identify recommended actions if the source contains them."},
+  {"question": "Which risks or limitations are discussed?", "ground_truth": "The answer should include only risks or limitations found in the document."},
+  {"question": "What process steps are described?", "ground_truth": "The answer should order the process steps as described in the document."},
+  {"question": "Who are the stakeholders in the document?", "ground_truth": "The answer should identify stakeholders mentioned by the source."},
+  {"question": "Which options does the document compare?", "ground_truth": "The answer should list compared options and criteria from the source."},
+  {"question": "Which dates or timeframes are relevant?", "ground_truth": "The answer should extract dates or timeframes from the document."},
+  {"question": "What does the document say about cost or resources?", "ground_truth": "The answer should use only cost or resource information from the source."},
+  {"question": "Which part of the document supports the answer?", "ground_truth": "The answer should cite the relevant section, page, or passage."},
+  {"question": "Are there internal contradictions in the document?", "ground_truth": "The answer should mention contradictions only if evidence exists."},
+  {"question": "How should insufficient information be handled?", "ground_truth": "The answer should state that the source is insufficient instead of guessing."}
+]
