@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+*.pyo
+.env
+chroma_db/
+document_cache/
+venv/
+.venv/
+*.log
+.DS_Store
+.claude/
+*.pkl
