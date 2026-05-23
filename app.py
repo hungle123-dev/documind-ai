@@ -89,7 +89,9 @@ def main() -> None:
     .app-subtitle { text-align: center; color: #555; margin-bottom: 1.5rem; }
     """
 
-    with gr.Blocks(theme=gr.themes.Soft(), title="DocuMind AI", css=css) as demo:
+    theme = gr.themes.Soft()
+
+    with gr.Blocks(title="DocuMind AI") as demo:
         gr.Markdown("# DocuMind AI", elem_classes="app-title")
         gr.Markdown(
             "Multilingual document Q&A for Vietnamese and English files.",
@@ -129,6 +131,8 @@ def main() -> None:
         server_name=settings.SERVER_HOST,
         server_port=settings.SERVER_PORT,
         share=settings.GRADIO_SHARE,
+        theme=theme,
+        css=css,
     )
 
 
