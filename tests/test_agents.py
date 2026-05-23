@@ -92,7 +92,7 @@ class FakeRetriever:
 
 def test_relevance_checker_normalizes_valid_labels() -> None:
     client = FakeChatClient(["partial."])
-    checker = RelevanceChecker(client=client, model="grok-fast")
+    checker = RelevanceChecker(client=client, model="llama-3.1-8b-instant")
 
     result = checker.check(
         "Can I answer?",
@@ -104,7 +104,7 @@ def test_relevance_checker_normalizes_valid_labels() -> None:
 
 def test_query_expander_keeps_original_and_two_variants() -> None:
     client = FakeChatClient(["variant one\nvariant two\nvariant three"])
-    expander = QueryExpander(client=client, model="grok-fast")
+    expander = QueryExpander(client=client, model="llama-3.1-8b-instant")
 
     assert expander.expand("original") == ["original", "variant one", "variant two"]
 
@@ -136,7 +136,7 @@ def test_research_agent_streams_tokens_and_returns_sources() -> None:
             metadata={"source": "a.pdf", "page": 1, "section": "Intro"},
         )
     ]
-    agent = ResearchAgent(client=client, model="grok-3")
+    agent = ResearchAgent(client=client, model="llama-3.3-70b-versatile")
 
     chunks = list(agent.generate_stream("question", docs))
 
@@ -154,18 +154,18 @@ def test_research_agent_passes_primary_and_fallback_models() -> None:
     ]
     agent = ResearchAgent(
         client=client,
-        model="grok-3",
-        fallback_models=["grok-3-mini"],
+        model="llama-3.3-70b-versatile",
+        fallback_models=["llama-3.1-8b-instant"],
     )
 
     result = agent.generate("question", docs)
 
     assert result["draft_answer"] == "fallback response"
-    assert client.seen_models == [["grok-3", "grok-3-mini"]]
+    assert client.seen_models == [["llama-3.3-70b-versatile", "llama-3.1-8b-instant"]]
 
 
 def test_verification_parser_supplies_defaults_for_missing_fields() -> None:
-    agent = VerificationAgent(client=FakeChatClient([]), model="grok-mini")
+    agent = VerificationAgent(client=FakeChatClient([]), model="llama-3.3-70b-versatile")
 
     parsed = agent.parse_verification_response("Supported: YES\nRelevant: YES")
 

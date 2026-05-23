@@ -4,7 +4,7 @@ from config.settings import settings
 from utils.language import LANGUAGE_INSTRUCTION
 from utils.logging import logger
 
-from .llm_client import ChatClient, GrokClient
+from .llm_client import ChatClient, GroqClient
 from .research_agent import build_context
 
 
@@ -30,7 +30,7 @@ class VerificationAgent:
     }
 
     def __init__(self, client: ChatClient | None = None, model: str | None = None) -> None:
-        self.client = client or GrokClient()
+        self.client = client or GroqClient()
         self.model = model or settings.VERIFICATION_MODEL
 
     def check(self, answer: str, documents: list[Document]) -> dict[str, str]:

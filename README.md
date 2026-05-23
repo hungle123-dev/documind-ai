@@ -1,6 +1,6 @@
 # DocuMind AI
 
-DocuMind AI is a multilingual document question-answering app for Vietnamese and English files. It combines lightweight document parsing, hybrid retrieval, local multilingual embeddings, Grok-powered agents, answer verification, and source citations.
+DocuMind AI is a multilingual document question-answering app for Vietnamese and English files. It combines lightweight document parsing, hybrid retrieval, local multilingual embeddings, Groq-powered agents, answer verification, and source citations.
 
 ## Features
 
@@ -10,7 +10,7 @@ DocuMind AI is a multilingual document question-answering app for Vietnamese and
 - Persist Chroma indexes by file hash to avoid repeated embeddings.
 - Generate grounded answers with a bounded multi-agent flow: relevance, research, verification.
 - Show source chunks with filename, page, section, and excerpt.
-- Run offline unit tests without a live xAI key.
+- Run offline unit tests without a live Groq key.
 
 ## Architecture
 
@@ -39,18 +39,18 @@ copy .env.example .env
 python app.py
 ```
 
-Set `XAI_API_KEY` in `.env` before running live Grok requests.
+Set `GROQ_API_KEY` in `.env` before running live Groq requests.
 
 ## Configuration
 
 Important environment variables:
 
-- `XAI_API_KEY`: required for live model calls.
-- `XAI_API_KEYS`: optional comma-separated key fallback list, for example `xai-key-1,xai-key-2,xai-key-3`. If set, it takes priority over `XAI_API_KEY`.
-- `RELEVANCE_MODEL`: default `grok-3-mini-fast`.
-- `RESEARCH_MODEL`: default `grok-3`.
-- `RESEARCH_FALLBACK_MODELS`: default `["grok-3-mini"]`.
-- `VERIFICATION_MODEL`: default `grok-3-mini`.
+- `GROQ_API_KEY`: required for live model calls.
+- `GROQ_API_KEYS`: optional comma-separated key fallback list, for example `gsk-key-1,gsk-key-2,gsk-key-3`. If set, it takes priority over `GROQ_API_KEY`.
+- `RELEVANCE_MODEL`: default `llama-3.1-8b-instant`.
+- `RESEARCH_MODEL`: default `llama-3.3-70b-versatile`.
+- `RESEARCH_FALLBACK_MODELS`: default `["llama-3.1-8b-instant"]`.
+- `VERIFICATION_MODEL`: default `llama-3.3-70b-versatile`.
 - `EMBEDDING_MODEL`: default `intfloat/multilingual-e5-small`.
 - `SERVER_HOST`: default `0.0.0.0`.
 - `SERVER_PORT`: default `7860`.
@@ -61,7 +61,7 @@ Important environment variables:
 python -m pytest tests -q
 ```
 
-The current test suite uses injected clients and test doubles for external model boundaries, so it does not contact xAI or download embedding/reranker models.
+The current test suite uses injected clients and test doubles for external model boundaries, so it does not contact Groq or download embedding/reranker models.
 
 ## Docker
 
@@ -88,7 +88,7 @@ Do not publish RAGAS scores until they come from an actual run with real inputs 
 
 This repository is compatible with a Gradio Space. Configure these secrets in the Space settings:
 
-- `XAI_API_KEY`
+- `GROQ_API_KEY`
 - Optional model and retrieval overrides from `.env.example`
 
 Use `app.py` as the Space entrypoint. A hosted deployment has **not yet run** from this repository.

@@ -5,7 +5,7 @@ from config.settings import settings
 from utils.language import LANGUAGE_INSTRUCTION
 from utils.logging import logger
 
-from .llm_client import ChatClient, GrokClient
+from .llm_client import ChatClient, GroqClient
 
 
 class RetrieverLike(Protocol):
@@ -27,7 +27,7 @@ class RelevanceChecker:
     VALID_LABELS = {"CAN_ANSWER", "PARTIAL", "NO_MATCH"}
 
     def __init__(self, client: ChatClient | None = None, model: str | None = None) -> None:
-        self.client = client or GrokClient()
+        self.client = client or GroqClient()
         self.model = model or settings.RELEVANCE_MODEL
 
     def check(self, question: str, retriever: RetrieverLike, k: int = 3) -> str:

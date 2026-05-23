@@ -5,14 +5,14 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from .constants import ALLOWED_TYPES, MAX_FILE_SIZE, MAX_TOTAL_SIZE
 
 class Settings(BaseSettings):
-    # LLM (Grok xAI, OpenAI-compatible)
-    XAI_API_KEY: str = Field(default="")
-    XAI_API_KEYS: str = Field(default="")
-    XAI_BASE_URL: str = "https://api.x.ai/v1"
-    RELEVANCE_MODEL: str = "grok-3-mini-fast"
-    RESEARCH_MODEL: str = "grok-3"
-    RESEARCH_FALLBACK_MODELS: list[str] = ["grok-3-mini"]
-    VERIFICATION_MODEL: str = "grok-3-mini"
+    # LLM (Groq, OpenAI-compatible)
+    GROQ_API_KEY: str = Field(default="")
+    GROQ_API_KEYS: str = Field(default="")
+    GROQ_BASE_URL: str = "https://api.groq.com/openai/v1"
+    RELEVANCE_MODEL: str = "llama-3.1-8b-instant"
+    RESEARCH_MODEL: str = "llama-3.3-70b-versatile"
+    RESEARCH_FALLBACK_MODELS: list[str] = ["llama-3.1-8b-instant"]
+    VERIFICATION_MODEL: str = "llama-3.3-70b-versatile"
 
     # Document limits
     MAX_FILE_SIZE: int = MAX_FILE_SIZE
@@ -47,8 +47,8 @@ class Settings(BaseSettings):
 
     @computed_field
     @property
-    def xai_api_keys(self) -> list[str]:
-        raw_keys = self.XAI_API_KEYS or self.XAI_API_KEY
+    def groq_api_keys(self) -> list[str]:
+        raw_keys = self.GROQ_API_KEYS or self.GROQ_API_KEY
         return [key.strip() for key in raw_keys.split(",") if key.strip()]
 
 settings = Settings()

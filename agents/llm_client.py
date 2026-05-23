@@ -29,7 +29,7 @@ class ChatClient(Protocol):
         """Yield streamed chat response tokens."""
 
 
-class GrokClient:
+class GroqClient:
     FALLBACK_EXCEPTIONS = (AuthenticationError, PermissionDeniedError, RateLimitError)
 
     def __init__(
@@ -38,10 +38,10 @@ class GrokClient:
         api_keys: list[str] | str | None = None,
         base_url: str | None = None,
     ) -> None:
-        self.base_url = base_url or settings.XAI_BASE_URL
+        self.base_url = base_url or settings.GROQ_BASE_URL
         self.api_keys = self._resolve_api_keys(api_key=api_key, api_keys=api_keys)
         if not self.api_keys:
-            raise RuntimeError("XAI_API_KEY or XAI_API_KEYS is required for live Grok requests.")
+            raise RuntimeError("GROQ_API_KEY or GROQ_API_KEYS is required for live Groq requests.")
 
         self.clients = [OpenAI(api_key=key, base_url=self.base_url) for key in self.api_keys]
         # Backward-compatible test seam: tests may replace `client` directly.
@@ -58,7 +58,7 @@ class GrokClient:
             return [key.strip() for key in api_keys if key.strip()]
         if api_key is not None:
             return [api_key] if api_key else []
-        return settings.xai_api_keys
+        return settings.groq_api_keys
 
     def _models(self, model: str | list[str]) -> list[str]:
         return model if isinstance(model, list) else [model]
@@ -85,7 +85,7 @@ class GrokClient:
         )
         content = response.choices[0].message.content
         if not content:
-            raise RuntimeError("Grok returned an empty response.")
+            raise RuntimeError("Groq returned an empty response.")
         return content
 
     def complete(
@@ -111,7 +111,7 @@ class GrokClient:
                 except self.FALLBACK_EXCEPTIONS as exc:
                     errors.append(f"key #{client_index}, model {candidate_model}: {type(exc).__name__}")
                     continue
-        raise RuntimeError(f"All configured xAI API keys failed. Attempts: {'; '.join(errors)}")
+        raise RuntimeError(f"All configured Groq API keys failed. Attempts: {'; '.join(errors)}")
 
     @retry(
         retry=retry_if_exception_type(APIConnectionError),
@@ -163,4 +163,4 @@ class GrokClient:
                 except self.FALLBACK_EXCEPTIONS as exc:
                     errors.append(f"key #{client_index}, model {candidate_model}: {type(exc).__name__}")
                     continue
-        raise RuntimeError(f"All configured xAI API keys failed. Attempts: {'; '.join(errors)}")
+        raise RuntimeError(f"All configured Groq API keys failed. Attempts: {'; '.join(errors)}")

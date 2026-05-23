@@ -1,7 +1,7 @@
 from config.settings import settings
 from utils.language import LANGUAGE_INSTRUCTION
 
-from .llm_client import ChatClient, GrokClient
+from .llm_client import ChatClient, GroqClient
 
 
 QUERY_EXPANSION_PROMPT = (
@@ -14,7 +14,7 @@ QUERY_EXPANSION_PROMPT = (
 
 class QueryExpander:
     def __init__(self, client: ChatClient | None = None, model: str | None = None) -> None:
-        self.client = client or GrokClient()
+        self.client = client or GroqClient()
         self.model = model or settings.RELEVANCE_MODEL
 
     def expand(self, question: str) -> list[str]:

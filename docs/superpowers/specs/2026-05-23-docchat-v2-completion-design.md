@@ -13,7 +13,7 @@ The existing repository is a partial v1 implementation. It still uses IBM Watson
 
 ### Included
 
-- Grok xAI client migration for relevance classification, answer generation, query expansion, and verification.
+- Groq client migration for relevance classification, answer generation, query expansion, and verification.
 - Bounded LangGraph workflow with explicit typed state and source propagation.
 - Lightweight PDF/DOCX/TXT/MD processing with metadata and content-hash caching.
 - Vietnamese-aware hybrid retrieval, multilingual embeddings, multilingual reranking, and persisted Chroma indexes.
@@ -57,12 +57,12 @@ This approach is preferred over a bulk rewrite because the installed environment
 | Component | Responsibility | Must Not Do |
 | --- | --- | --- |
 | `config/settings.py` | Environment-backed settings and default model/retrieval/server limits | Instantiate network clients or hardcode runtime decisions outside settings |
-| `agents/*` | Prompts, Grok calls, response parsing, context budgeting | Parse files or create vector stores |
+| `agents/*` | Prompts, Groq calls, response parsing, context budgeting | Parse files or create vector stores |
 | `agents/workflow.py` | Typed LangGraph transitions and iteration bounds | Hide retrieval metadata or loop without limit |
 | `document_processor/file_handler.py` | Validation, parsing, splitting, chunk metadata, document cache | Embed documents or invoke LLMs |
 | `retriever/builder.py` | Vector persistence, BM25, expansion, reranking | Own UI state or answer generation |
 | `app.py` | Gradio composition, session lifecycle, streaming rendering, source formatting | Contain retrieval/model implementation details |
-| `tests/` | Behavioral verification with fakes/mocks at external boundaries | Depend on live xAI requests or downloaded heavyweight models |
+| `tests/` | Behavioral verification with fakes/mocks at external boundaries | Depend on live Groq requests or downloaded heavyweight models |
 
 ## 5. Stable Contracts
 
@@ -70,13 +70,13 @@ This approach is preferred over a bulk rewrite because the installed environment
 
 All configurable runtime behavior must be exposed through `settings`, including:
 
-- `XAI_API_KEY`, `XAI_BASE_URL`, `RELEVANCE_MODEL`, `RESEARCH_MODEL`, `VERIFICATION_MODEL`.
+- `GROQ_API_KEY`, `GROQ_BASE_URL`, `RELEVANCE_MODEL`, `RESEARCH_MODEL`, `VERIFICATION_MODEL`.
 - `EMBEDDING_MODEL`, `RERANKER_MODEL`, `VECTOR_SEARCH_K`, `RERANKER_TOP_N`, `HYBRID_RETRIEVER_WEIGHTS`.
 - `MAX_CONTEXT_TOKENS`, `MAX_RESEARCH_ITERATIONS`.
 - `MAX_FILE_SIZE`, `MAX_TOTAL_SIZE`, `ALLOWED_TYPES`, `CACHE_DIR`, `CACHE_EXPIRE_DAYS`, `CHROMA_DB_PATH`.
 - `SERVER_HOST`, `SERVER_PORT`, and a setting governing whether a public Gradio share URL is enabled.
 
-The application must fail with an actionable configuration error when a live Grok call is requested without a usable key. Unit tests inject fake clients rather than requiring an environment secret.
+The application must fail with an actionable configuration error when a live Groq call is requested without a usable key. Unit tests inject fake clients rather than requiring an environment secret.
 
 ### 5.2 Chunk Metadata
 
@@ -113,9 +113,9 @@ Streaming must yield incremental answer content while preserving source document
 
 ## 6. Component Design
 
-### 6.1 Grok Agents
+### 6.1 Groq Agents
 
-The agents use the OpenAI-compatible xAI endpoint through a client boundary that can be injected in tests. Every live API operation uses retry/backoff for transient rate-limit and connection failures. Model identifiers and token/temperature configuration come from settings.
+The agents use the OpenAI-compatible Groq endpoint through a client boundary that can be injected in tests. Every live API operation uses retry/backoff for transient rate-limit and connection failures. Model identifiers and token/temperature configuration come from settings.
 
 - `RelevanceChecker` returns only `CAN_ANSWER`, `PARTIAL`, or `NO_MATCH`, treating invalid model output as a controlled failure rather than silently proceeding.
 - `QueryExpander` generates concise retrieval variants and always retains the original question.
@@ -205,7 +205,7 @@ Integration-level tests will compose faked agents/retrievers and real lightweigh
 ## 10. Implementation Sequence
 
 1. Create `tests/` fixtures and core contract tests; migrate settings and shared utility contracts.
-2. Replace WatsonX agent code with injectable Grok-based agents and implement bounded workflow tests.
+2. Replace WatsonX agent code with injectable Groq-based agents and implement bounded workflow tests.
 3. Replace Docling ingestion with lightweight typed parsing, chunk metadata, and document-cache tests.
 4. Replace English-only retrieval with multilingual staged retrieval, persistence, and isolated tests.
 5. Refactor `app.py` around session reuse, streamed answers, sources, and UI helper tests.
@@ -219,6 +219,6 @@ Integration-level tests will compose faked agents/retrievers and real lightweigh
 - Both Vietnamese and English content flow through metadata-preserving parsing, multilingual retrieval, language-aware prompting, and source rendering.
 - Re-research cannot run indefinitely.
 - Repeated file sets reuse content and embedding persistence as designed.
-- Offline automated tests execute without a real xAI key or network model calls.
+- Offline automated tests execute without a real Groq key or network model calls.
 - CI, Docker, README, and evaluation/deployment preparation are present and aligned with actual behavior.
 - No fabricated metric, deployment, or live-service success statement appears in repository documentation.

@@ -6,7 +6,7 @@ from config.settings import settings
 from utils.language import LANGUAGE_INSTRUCTION
 from utils.logging import logger
 
-from .llm_client import ChatClient, GrokClient
+from .llm_client import ChatClient, GroqClient
 
 
 RESEARCH_PROMPT = (
@@ -49,7 +49,7 @@ class ResearchAgent:
         model: str | None = None,
         fallback_models: list[str] | None = None,
     ) -> None:
-        self.client = client or GrokClient()
+        self.client = client or GroqClient()
         self.model = model or settings.RESEARCH_MODEL
         self.fallback_models = fallback_models if fallback_models is not None else settings.RESEARCH_FALLBACK_MODELS
 

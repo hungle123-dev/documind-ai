@@ -2,18 +2,18 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Turn the current baseline into a production-ready bilingual RAG document assistant with Grok agents, lightweight document ingestion, multilingual retrieval, streaming UI, tests, CI, Docker, and evaluation/deployment preparation.
+**Goal:** Turn the current baseline into a production-ready bilingual RAG document assistant with Groq agents, lightweight document ingestion, multilingual retrieval, streaming UI, tests, CI, Docker, and evaluation/deployment preparation.
 
-**Architecture:** Implement the app as small contracts around settings, LLM clients, document chunks, retriever stages, workflow state, and UI helpers. External services and heavyweight ML components are injected or wrapped so unit tests stay offline while runtime code can use real Grok, Chroma, embeddings, and rerankers.
+**Architecture:** Implement the app as small contracts around settings, LLM clients, document chunks, retriever stages, workflow state, and UI helpers. External services and heavyweight ML components are injected or wrapped so unit tests stay offline while runtime code can use real Groq, Chroma, embeddings, and rerankers.
 
-**Tech Stack:** Python 3.11+, Gradio, LangGraph, LangChain, OpenAI-compatible xAI API, pymupdf4llm, python-docx, ChromaDB, sentence-transformers, rank-bm25, underthesea, pytest, Docker, GitHub Actions.
+**Tech Stack:** Python 3.11+, Gradio, LangGraph, LangChain, OpenAI-compatible Groq API, pymupdf4llm, python-docx, ChromaDB, sentence-transformers, rank-bm25, underthesea, pytest, Docker, GitHub Actions.
 
 ---
 
 ## File Structure
 
 - Create `tests/` as the real pytest suite; leave old exploratory `test/` assets only as samples until they are replaced or moved.
-- Create `agents/llm_client.py` for the Grok client boundary and retry behavior.
+- Create `agents/llm_client.py` for the Groq client boundary and retry behavior.
 - Create `agents/query_expander.py` for retrieval query variants.
 - Rewrite `agents/relevance_checker.py`, `agents/research_agent.py`, `agents/verification_agent.py`, and `agents/workflow.py` around injectable clients and typed results.
 - Rewrite `config/settings.py` to remove legacy OpenAI/WatsonX assumptions and expose all PRD settings.
@@ -41,13 +41,13 @@ from config.settings import Settings
 from utils.language import detect_language, vi_tokenizer
 
 
-def test_settings_exposes_grok_and_retrieval_defaults():
-    settings = Settings(XAI_API_KEY="xai-test-key")
+def test_settings_exposes_groq_and_retrieval_defaults():
+    settings = Settings(GROQ_API_KEY="gsk-test-key")
 
-    assert settings.XAI_BASE_URL == "https://api.x.ai/v1"
-    assert settings.RELEVANCE_MODEL == "grok-3-mini-fast"
-    assert settings.RESEARCH_MODEL == "grok-3"
-    assert settings.VERIFICATION_MODEL == "grok-3-mini"
+    assert settings.GROQ_BASE_URL == "https://api.groq.com/openai/v1"
+    assert settings.RELEVANCE_MODEL == "llama-3.1-8b-instant"
+    assert settings.RESEARCH_MODEL == "llama-3.3-70b-versatile"
+    assert settings.VERIFICATION_MODEL == "llama-3.1-8b-instant"
     assert settings.EMBEDDING_MODEL == "intfloat/multilingual-e5-small"
     assert settings.RERANKER_MODEL == "cross-encoder/mmarco-mMiniLMv2-L12-H384-v1"
     assert settings.VECTOR_SEARCH_K == 15
@@ -82,11 +82,11 @@ from .constants import ALLOWED_TYPES, MAX_FILE_SIZE, MAX_TOTAL_SIZE
 
 
 class Settings(BaseSettings):
-    XAI_API_KEY: str = Field(default="")
-    XAI_BASE_URL: str = "https://api.x.ai/v1"
-    RELEVANCE_MODEL: str = "grok-3-mini-fast"
-    RESEARCH_MODEL: str = "grok-3"
-    VERIFICATION_MODEL: str = "grok-3-mini"
+    GROQ_API_KEY: str = Field(default="")
+    GROQ_BASE_URL: str = "https://api.groq.com/openai/v1"
+    RELEVANCE_MODEL: str = "llama-3.1-8b-instant"
+    RESEARCH_MODEL: str = "llama-3.3-70b-versatile"
+    VERIFICATION_MODEL: str = "llama-3.1-8b-instant"
     EMBEDDING_MODEL: str = "intfloat/multilingual-e5-small"
     RERANKER_MODEL: str = "cross-encoder/mmarco-mMiniLMv2-L12-H384-v1"
     VECTOR_SEARCH_K: int = 15
@@ -126,7 +126,7 @@ git commit -m "test: establish settings and language contracts"
 
 ---
 
-### Task 2: Grok Client Boundary and Agents
+### Task 2: Groq Client Boundary and Agents
 
 **Files:**
 - Create: `agents/llm_client.py`
@@ -174,7 +174,7 @@ class FakeRetriever:
 
 def test_relevance_checker_normalizes_valid_labels(settings):
     client = FakeChatClient(["partial."])
-    checker = RelevanceChecker(client=client, model="grok-fast")
+    checker = RelevanceChecker(client=client, model="llama-3.1-8b-instant")
 
     result = checker.check("Can I answer?", FakeRetriever([Document(page_content="context")]))
 
@@ -183,7 +183,7 @@ def test_relevance_checker_normalizes_valid_labels(settings):
 
 def test_query_expander_keeps_original_and_two_variants():
     client = FakeChatClient(["variant one\nvariant two\nvariant three"])
-    expander = QueryExpander(client=client, model="grok-fast")
+    expander = QueryExpander(client=client, model="llama-3.1-8b-instant")
 
     assert expander.expand("original") == ["original", "variant one", "variant two"]
 
@@ -204,7 +204,7 @@ def test_build_context_respects_budget_and_labels_sources():
 def test_research_agent_streams_tokens_and_returns_sources():
     client = FakeChatClient([["Hello", " ", "world"]])
     docs = [Document(page_content="context", metadata={"source": "a.pdf", "page": 1, "section": "Intro"})]
-    agent = ResearchAgent(client=client, model="grok-3")
+    agent = ResearchAgent(client=client, model="llama-3.3-70b-versatile")
 
     chunks = list(agent.generate_stream("question", docs))
 
@@ -213,7 +213,7 @@ def test_research_agent_streams_tokens_and_returns_sources():
 
 
 def test_verification_parser_supplies_defaults_for_missing_fields():
-    agent = VerificationAgent(client=FakeChatClient([]), model="grok-mini")
+    agent = VerificationAgent(client=FakeChatClient([]), model="llama-3.3-70b-versatile")
 
     parsed = agent.parse_verification_response("Supported: YES\nRelevant: YES")
 
@@ -246,12 +246,12 @@ class ChatClient(Protocol):
     def stream(self, *, model: str, messages: list[dict[str, str]], temperature: float, max_tokens: int) -> Iterable[str]: ...
 
 
-class GrokClient:
+class GroqClient:
     def __init__(self, api_key: str | None = None, base_url: str | None = None) -> None:
-        key = api_key if api_key is not None else settings.XAI_API_KEY
+        key = api_key if api_key is not None else settings.GROQ_API_KEY
         if not key:
-            raise RuntimeError("XAI_API_KEY is required for live Grok requests.")
-        self.client = OpenAI(api_key=key, base_url=base_url or settings.XAI_BASE_URL)
+            raise RuntimeError("GROQ_API_KEY is required for live Groq requests.")
+        self.client = OpenAI(api_key=key, base_url=base_url or settings.GROQ_BASE_URL)
 
     @retry(
         retry=retry_if_exception_type((RateLimitError, APIConnectionError)),
@@ -267,7 +267,7 @@ class GrokClient:
         )
         content = response.choices[0].message.content
         if not content:
-            raise RuntimeError("Grok returned an empty response.")
+            raise RuntimeError("Groq returned an empty response.")
         return content
 
     @retry(
@@ -291,7 +291,7 @@ class GrokClient:
 
 - [ ] **Step 4: Rewrite agents around injected clients**
 
-Implement each agent with `client: ChatClient | None = None`; default to `GrokClient()` only at runtime. Prompts must append the shared language instruction and use settings-backed defaults.
+Implement each agent with `client: ChatClient | None = None`; default to `GroqClient()` only at runtime. Prompts must append the shared language instruction and use settings-backed defaults.
 
 - [ ] **Step 5: Run green tests**
 
@@ -303,7 +303,7 @@ Expected: PASS.
 
 ```bash
 git add agents tests/test_agents.py
-git commit -m "feat: migrate agents to Grok client boundary"
+git commit -m "feat: migrate agents to Groq client boundary"
 ```
 
 ---
@@ -793,6 +793,6 @@ Expected: remote `main` receives all completed commits.
 
 ## Self-Review Notes
 
-- Spec coverage: settings, Grok agents, workflow guard, document parsing, multilingual retrieval, UI streaming/sources, tests, CI, Docker, README, eval assets, and truthful deployment/evaluation reporting each map to a task.
+- Spec coverage: settings, Groq agents, workflow guard, document parsing, multilingual retrieval, UI streaming/sources, tests, CI, Docker, README, eval assets, and truthful deployment/evaluation reporting each map to a task.
 - Placeholder scan: no implementation task relies on unspecified files or unnamed future behavior.
 - Type consistency: public names used by tests are defined in the corresponding implementation tasks before later tasks depend on them.

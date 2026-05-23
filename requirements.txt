@@ -1,4 +1,4 @@
-# LLM — Grok xAI (OpenAI-compatible SDK)
+# LLM — Groq (OpenAI-compatible SDK)
 openai>=1.0.0
 langgraph>=0.2.0
 langchain>=0.3.0
