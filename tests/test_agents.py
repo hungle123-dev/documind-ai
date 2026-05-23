@@ -54,6 +54,34 @@ class FakeChatClient:
         yield from response
 
 
+class FallbackAwareFakeClient:
+    def __init__(self, response: str = "fallback response") -> None:
+        self.response = response
+        self.seen_models: list[list[str]] = []
+
+    def complete(
+        self,
+        *,
+        model: str | list[str],
+        messages: list[dict[str, str]],
+        temperature: float,
+        max_tokens: int,
+    ) -> str:
+        self.seen_models.append(model if isinstance(model, list) else [model])
+        return self.response
+
+    def stream(
+        self,
+        *,
+        model: str | list[str],
+        messages: list[dict[str, str]],
+        temperature: float,
+        max_tokens: int,
+    ) -> Iterable[str]:
+        self.seen_models.append(model if isinstance(model, list) else [model])
+        yield self.response
+
+
 class FakeRetriever:
     def __init__(self, docs: list[Document]) -> None:
         self.docs = docs
@@ -114,6 +142,26 @@ def test_research_agent_streams_tokens_and_returns_sources() -> None:
 
     assert "".join(chunk for chunk, _ in chunks) == "Hello world"
     assert chunks[-1][1] == docs
+
+
+def test_research_agent_passes_primary_and_fallback_models() -> None:
+    client = FallbackAwareFakeClient()
+    docs = [
+        Document(
+            page_content="context",
+            metadata={"source": "a.pdf", "page": 1, "section": "Intro"},
+        )
+    ]
+    agent = ResearchAgent(
+        client=client,
+        model="grok-3",
+        fallback_models=["grok-3-mini"],
+    )
+
+    result = agent.generate("question", docs)
+
+    assert result["draft_answer"] == "fallback response"
+    assert client.seen_models == [["grok-3", "grok-3-mini"]]
 
 
 def test_verification_parser_supplies_defaults_for_missing_fields() -> None:

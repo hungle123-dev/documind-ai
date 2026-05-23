@@ -1,4 +1,5 @@
 from pydantic import Field
+from pydantic import computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from .constants import ALLOWED_TYPES, MAX_FILE_SIZE, MAX_TOTAL_SIZE
@@ -6,9 +7,11 @@ from .constants import ALLOWED_TYPES, MAX_FILE_SIZE, MAX_TOTAL_SIZE
 class Settings(BaseSettings):
     # LLM (Grok xAI, OpenAI-compatible)
     XAI_API_KEY: str = Field(default="")
+    XAI_API_KEYS: str = Field(default="")
     XAI_BASE_URL: str = "https://api.x.ai/v1"
     RELEVANCE_MODEL: str = "grok-3-mini-fast"
     RESEARCH_MODEL: str = "grok-3"
+    RESEARCH_FALLBACK_MODELS: list[str] = ["grok-3-mini"]
     VERIFICATION_MODEL: str = "grok-3-mini"
 
     # Document limits
@@ -41,5 +44,11 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         extra="ignore",
     )
+
+    @computed_field
+    @property
+    def xai_api_keys(self) -> list[str]:
+        raw_keys = self.XAI_API_KEYS or self.XAI_API_KEY
+        return [key.strip() for key in raw_keys.split(",") if key.strip()]
 
 settings = Settings()

@@ -43,15 +43,25 @@ def build_context(documents: list[Document], max_tokens: int | None = None) -> s
 
 
 class ResearchAgent:
-    def __init__(self, client: ChatClient | None = None, model: str | None = None) -> None:
+    def __init__(
+        self,
+        client: ChatClient | None = None,
+        model: str | None = None,
+        fallback_models: list[str] | None = None,
+    ) -> None:
         self.client = client or GrokClient()
         self.model = model or settings.RESEARCH_MODEL
+        self.fallback_models = fallback_models if fallback_models is not None else settings.RESEARCH_FALLBACK_MODELS
+
+    @property
+    def models(self) -> str | list[str]:
+        return [self.model, *self.fallback_models] if self.fallback_models else self.model
 
     def generate(self, question: str, documents: list[Document]) -> dict[str, object]:
         logger.debug(f"ResearchAgent.generate | docs={len(documents)}")
         context = build_context(documents)
         answer = self.client.complete(
-            model=self.model,
+            model=self.models,
             messages=[
                 {"role": "system", "content": RESEARCH_PROMPT},
                 {"role": "user", "content": f"Question: {question}\n\nContext:\n{context}"},
@@ -71,7 +81,7 @@ class ResearchAgent:
         logger.debug(f"ResearchAgent.generate_stream | docs={len(documents)}")
         context = build_context(documents)
         for token in self.client.stream(
-            model=self.model,
+            model=self.models,
             messages=[
                 {"role": "system", "content": RESEARCH_PROMPT},
                 {"role": "user", "content": f"Question: {question}\n\nContext:\n{context}"},

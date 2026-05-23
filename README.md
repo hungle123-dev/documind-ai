@@ -46,8 +46,10 @@ Set `XAI_API_KEY` in `.env` before running live Grok requests.
 Important environment variables:
 
 - `XAI_API_KEY`: required for live model calls.
+- `XAI_API_KEYS`: optional comma-separated key fallback list, for example `xai-key-1,xai-key-2,xai-key-3`. If set, it takes priority over `XAI_API_KEY`.
 - `RELEVANCE_MODEL`: default `grok-3-mini-fast`.
 - `RESEARCH_MODEL`: default `grok-3`.
+- `RESEARCH_FALLBACK_MODELS`: default `["grok-3-mini"]`.
 - `VERIFICATION_MODEL`: default `grok-3-mini`.
 - `EMBEDDING_MODEL`: default `intfloat/multilingual-e5-small`.
 - `SERVER_HOST`: default `0.0.0.0`.
