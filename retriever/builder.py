@@ -1,4 +1,5 @@
 import hashlib
+import os
 from pathlib import Path
 from typing import Callable, Protocol
 
@@ -35,9 +36,26 @@ def dedupe_documents(documents: list[Document]) -> list[Document]:
     return deduped
 
 
+def configure_torch_cpu_runtime() -> None:
+    thread_count = settings.RERANKER_TORCH_THREADS
+    thread_value = str(thread_count)
+    os.environ.setdefault("OMP_NUM_THREADS", thread_value)
+    os.environ.setdefault("MKL_NUM_THREADS", thread_value)
+    os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
+
+    import torch
+
+    torch.set_num_threads(thread_count)
+    try:
+        torch.set_num_interop_threads(thread_count)
+    except RuntimeError as exc:
+        logger.debug(f"Torch interop threads already initialized: {exc}")
+
+
 class E5Embeddings:
     def __init__(self, model_name: str | None = None) -> None:
         configure_system_trust_store()
+        configure_torch_cpu_runtime()
         from langchain_huggingface import HuggingFaceEmbeddings
 
         self.embeddings = HuggingFaceEmbeddings(
@@ -97,6 +115,7 @@ class BM25Index:
 class CrossEncoderReranker:
     def __init__(self, model_name: str | None = None) -> None:
         configure_system_trust_store()
+        configure_torch_cpu_runtime()
         from sentence_transformers import CrossEncoder
 
         self.model = CrossEncoder(model_name or settings.RERANKER_MODEL)
@@ -186,6 +205,8 @@ class RetrieverBuilder:
         self.reranker = reranker
         self.query_expander = query_expander
         self.chroma_root = Path(chroma_root or settings.CHROMA_DB_PATH)
+        self._default_vector_factory: VectorFactory | None = None
+        self._default_reranker: Reranker | None = None
 
     def build_hybrid_retriever(self, docs: list[Document]) -> HybridRetriever:
         if not docs:
@@ -196,8 +217,8 @@ class RetrieverBuilder:
             for doc in docs
         ]
         persist_directory = self.chroma_root / combined_file_hash(file_hashes)
-        vector_factory = self.vector_factory or ChromaVectorFactory(embeddings=self.embeddings)
-        reranker = self.reranker or CrossEncoderReranker()
+        vector_factory = self.vector_factory or self._get_default_vector_factory()
+        reranker = self.reranker or self._get_default_reranker()
         vector_store = vector_factory.load_or_build(docs, str(persist_directory))
 
         return HybridRetriever(
@@ -208,3 +229,13 @@ class RetrieverBuilder:
             top_n=settings.RERANKER_TOP_N,
             query_expander=self.query_expander,
         )
+
+    def _get_default_vector_factory(self) -> VectorFactory:
+        if self._default_vector_factory is None:
+            self._default_vector_factory = ChromaVectorFactory(embeddings=self.embeddings)
+        return self._default_vector_factory
+
+    def _get_default_reranker(self) -> Reranker:
+        if self._default_reranker is None:
+            self._default_reranker = CrossEncoderReranker()
+        return self._default_reranker

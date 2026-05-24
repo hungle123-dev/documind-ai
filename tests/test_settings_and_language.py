@@ -12,13 +12,14 @@ def test_settings_exposes_groq_and_retrieval_defaults() -> None:
     assert settings.VERIFICATION_MODEL == "llama-3.1-8b-instant"
     assert settings.EMBEDDING_MODEL == "intfloat/multilingual-e5-small"
     assert settings.RERANKER_MODEL == "cross-encoder/mmarco-mMiniLMv2-L12-H384-v1"
+    assert settings.RERANKER_TORCH_THREADS == 1
     assert settings.VECTOR_SEARCH_K == 15
     assert settings.RERANKER_TOP_N == 5
     assert settings.MAX_RESEARCH_ITERATIONS == 2
 
 
 def test_settings_parses_multiple_groq_api_keys() -> None:
-    settings = Settings(_env_file=None, GROQ_API_KEYS="gsk-one, gsk-two,,gsk-three")
+    settings = Settings(_env_file=None, GROQ_API_KEY="", GROQ_API_KEYS="gsk-one, gsk-two,,gsk-three")
 
     assert settings.groq_api_keys == ["gsk-one", "gsk-two", "gsk-three"]
 
@@ -27,6 +28,16 @@ def test_settings_falls_back_to_single_groq_api_key() -> None:
     settings = Settings(_env_file=None, GROQ_API_KEY="gsk-single")
 
     assert settings.groq_api_keys == ["gsk-single"]
+
+
+def test_settings_combines_legacy_and_plural_groq_api_keys_without_duplicates() -> None:
+    settings = Settings(
+        _env_file=None,
+        GROQ_API_KEY="gsk-one, gsk-two",
+        GROQ_API_KEYS="gsk-two,gsk-three",
+    )
+
+    assert settings.groq_api_keys == ["gsk-one", "gsk-two", "gsk-three"]
 
 
 def test_detect_language_returns_vi_for_vietnamese_text() -> None:

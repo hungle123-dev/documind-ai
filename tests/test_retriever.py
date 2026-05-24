@@ -5,6 +5,8 @@ from langchain_core.documents import Document
 
 from retriever.builder import (
     ChromaVectorFactory,
+    CrossEncoderReranker,
+    E5Embeddings,
     RetrieverBuilder,
     combined_file_hash,
     configure_system_trust_store,
@@ -259,6 +261,38 @@ def test_default_builder_does_not_load_models_until_build(monkeypatch, tmp_path)
     assert builder.chroma_root == tmp_path
 
 
+def test_default_builder_reuses_heavy_model_components_across_builds(monkeypatch, tmp_path) -> None:
+    import retriever.builder as builder_module
+
+    events: list[str] = []
+
+    class FakeChromaFactory:
+        def __init__(self, embeddings=None) -> None:
+            events.append("vector_factory_init")
+
+        def load_or_build(self, docs: list[Document], persist_directory: str) -> FakeVectorStore:
+            return FakeVectorStore(docs)
+
+    class FakeReranker:
+        def __init__(self) -> None:
+            events.append("reranker_init")
+
+        def __call__(self, query: str, items: list[Document], top_n: int) -> list[Document]:
+            return items[:top_n]
+
+    monkeypatch.setattr(builder_module, "ChromaVectorFactory", FakeChromaFactory)
+    monkeypatch.setattr(builder_module, "CrossEncoderReranker", FakeReranker)
+
+    builder = RetrieverBuilder(chroma_root=tmp_path)
+    first_docs = [Document(page_content="alpha", metadata={"file_hash": "1"})]
+    second_docs = [Document(page_content="beta", metadata={"file_hash": "2"})]
+
+    builder.build_hybrid_retriever(first_docs)
+    builder.build_hybrid_retriever(second_docs)
+
+    assert events == ["vector_factory_init", "reranker_init"]
+
+
 def test_configure_system_trust_store_injects_platform_certificates(monkeypatch) -> None:
     calls: list[bool] = []
     fake_truststore = SimpleNamespace(inject_into_ssl=lambda: calls.append(True))
@@ -267,3 +301,56 @@ def test_configure_system_trust_store_injects_platform_certificates(monkeypatch)
     configure_system_trust_store()
 
     assert calls == [True]
+
+
+def test_cross_encoder_reranker_pins_torch_cpu_threads_before_loading_model(monkeypatch) -> None:
+    events: list[str] = []
+
+    fake_torch = SimpleNamespace(
+        set_num_threads=lambda threads: events.append(f"threads:{threads}"),
+        set_num_interop_threads=lambda threads: events.append(f"interop:{threads}"),
+    )
+
+    class FakeCrossEncoder:
+        def __init__(self, model_name: str) -> None:
+            events.append(f"model:{model_name}")
+
+        def predict(self, pairs):
+            return [1.0 for _ in pairs]
+
+    monkeypatch.setitem(sys.modules, "torch", fake_torch)
+    monkeypatch.setitem(
+        sys.modules,
+        "sentence_transformers",
+        SimpleNamespace(CrossEncoder=FakeCrossEncoder),
+    )
+    monkeypatch.setattr("retriever.builder.configure_system_trust_store", lambda: events.append("trust"))
+
+    CrossEncoderReranker(model_name="reranker-model")
+
+    assert events == ["trust", "threads:1", "interop:1", "model:reranker-model"]
+
+
+def test_e5_embeddings_pin_torch_cpu_threads_before_loading_model(monkeypatch) -> None:
+    events: list[str] = []
+
+    fake_torch = SimpleNamespace(
+        set_num_threads=lambda threads: events.append(f"threads:{threads}"),
+        set_num_interop_threads=lambda threads: events.append(f"interop:{threads}"),
+    )
+
+    class FakeHuggingFaceEmbeddings:
+        def __init__(self, **kwargs) -> None:
+            events.append(f"model:{kwargs['model']}")
+
+    monkeypatch.setitem(sys.modules, "torch", fake_torch)
+    monkeypatch.setitem(
+        sys.modules,
+        "langchain_huggingface",
+        SimpleNamespace(HuggingFaceEmbeddings=FakeHuggingFaceEmbeddings),
+    )
+    monkeypatch.setattr("retriever.builder.configure_system_trust_store", lambda: events.append("trust"))
+
+    E5Embeddings(model_name="embedding-model")
+
+    assert events == ["trust", "threads:1", "interop:1", "model:embedding-model"]

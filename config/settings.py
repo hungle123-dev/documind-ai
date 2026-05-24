@@ -22,6 +22,7 @@ class Settings(BaseSettings):
     # Embeddings and retrieval
     EMBEDDING_MODEL: str = "intfloat/multilingual-e5-small"
     RERANKER_MODEL: str = "cross-encoder/mmarco-mMiniLMv2-L12-H384-v1"
+    RERANKER_TORCH_THREADS: int = 1
     CHROMA_DB_PATH: str = "chroma_db"
     VECTOR_SEARCH_K: int = 15
     RERANKER_TOP_N: int = 5
@@ -48,7 +49,14 @@ class Settings(BaseSettings):
     @computed_field
     @property
     def groq_api_keys(self) -> list[str]:
-        raw_keys = self.GROQ_API_KEYS or self.GROQ_API_KEY
-        return [key.strip() for key in raw_keys.split(",") if key.strip()]
+        keys: list[str] = []
+        seen: set[str] = set()
+        for raw_keys in (self.GROQ_API_KEY, self.GROQ_API_KEYS):
+            for key in raw_keys.split(","):
+                normalized_key = key.strip()
+                if normalized_key and normalized_key not in seen:
+                    keys.append(normalized_key)
+                    seen.add(normalized_key)
+        return keys
 
 settings = Settings()

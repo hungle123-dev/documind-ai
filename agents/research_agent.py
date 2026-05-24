@@ -3,7 +3,7 @@ from collections.abc import Iterable
 from langchain_core.documents import Document
 
 from config.settings import settings
-from utils.language import LANGUAGE_INSTRUCTION
+from utils.language import LANGUAGE_INSTRUCTION, detect_language
 from utils.logging import logger
 
 from .llm_client import ChatClient, GroqClient
@@ -19,6 +19,10 @@ RESEARCH_PROMPT = (
     "If the question asks about one entity, answer only for that entity; mention other entities only "
     "when explicitly needed to disambiguate.\n"
     "Never present values for another entity as alternatives to the requested entity.\n"
+    "Preserve exact names for methods, formulations, systems, datasets, metrics, and acronyms "
+    "from the context.\n"
+    "Do not replace official names with only paraphrases; include the exact name and then explain it "
+    "if useful.\n"
     "Cite which source supports each claim.\n"
     f"{LANGUAGE_INSTRUCTION}"
 )
@@ -47,6 +51,16 @@ def build_context(documents: list[Document], max_tokens: int | None = None) -> s
     return "\n\n---\n\n".join(context_parts)
 
 
+def language_directive(question: str) -> str:
+    language = detect_language(question)
+    answer_language = "Vietnamese" if language == "vi" else "English"
+    return (
+        f"User question language: {language}\n"
+        f"Answer language: {answer_language}\n"
+        "Use the answer language above even when the retrieved context is written in another language."
+    )
+
+
 class ResearchAgent:
     def __init__(
         self,
@@ -69,7 +83,10 @@ class ResearchAgent:
             model=self.models,
             messages=[
                 {"role": "system", "content": RESEARCH_PROMPT},
-                {"role": "user", "content": f"Question: {question}\n\nContext:\n{context}"},
+                {
+                    "role": "user",
+                    "content": f"{language_directive(question)}\n\nQuestion: {question}\n\nContext:\n{context}",
+                },
             ],
             temperature=0.0,
             max_tokens=1024,
@@ -89,7 +106,10 @@ class ResearchAgent:
             model=self.models,
             messages=[
                 {"role": "system", "content": RESEARCH_PROMPT},
-                {"role": "user", "content": f"Question: {question}\n\nContext:\n{context}"},
+                {
+                    "role": "user",
+                    "content": f"{language_directive(question)}\n\nQuestion: {question}\n\nContext:\n{context}",
+                },
             ],
             temperature=0.0,
             max_tokens=1024,

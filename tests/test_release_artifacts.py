@@ -48,6 +48,7 @@ def test_documented_model_defaults_match_settings() -> None:
         "RELEVANCE_MODEL",
         "RESEARCH_MODEL",
         "VERIFICATION_MODEL",
+        "RERANKER_TORCH_THREADS",
     ]:
         value = getattr(settings, variable)
         assert f"{variable}={value}" in env_example

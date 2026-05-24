@@ -46,12 +46,13 @@ Set `GROQ_API_KEY` in `.env` before running live Groq requests.
 Important environment variables:
 
 - `GROQ_API_KEY`: required for live model calls.
-- `GROQ_API_KEYS`: optional comma-separated key fallback list, for example `gsk-key-1,gsk-key-2,gsk-key-3`. If set, it takes priority over `GROQ_API_KEY`.
+- `GROQ_API_KEYS`: optional comma-separated key fallback list, for example `gsk-key-1,gsk-key-2,gsk-key-3`. It is merged with `GROQ_API_KEY` and duplicates are removed.
 - `RELEVANCE_MODEL`: default `llama-3.1-8b-instant`.
 - `RESEARCH_MODEL`: default `llama-3.3-70b-versatile`.
 - `RESEARCH_FALLBACK_MODELS`: default `["llama-3.1-8b-instant"]`.
 - `VERIFICATION_MODEL`: default `llama-3.1-8b-instant`.
 - `EMBEDDING_MODEL`: default `intfloat/multilingual-e5-small`.
+- `RERANKER_TORCH_THREADS`: default `1`.
 - `SERVER_HOST`: default `0.0.0.0`.
 - `SERVER_PORT`: default `7860`.
 

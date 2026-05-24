@@ -196,6 +196,12 @@ def test_research_prompt_requires_exact_table_qualifiers() -> None:
     assert "Never present values for another entity as alternatives" in RESEARCH_PROMPT
 
 
+def test_research_prompt_preserves_named_methods_and_acronyms() -> None:
+    assert "Preserve exact names" in RESEARCH_PROMPT
+    assert "methods, formulations, systems, datasets, metrics, and acronyms" in RESEARCH_PROMPT
+    assert "Do not replace official names with only paraphrases" in RESEARCH_PROMPT
+
+
 def test_research_agent_uses_deterministic_temperature_for_grounded_answers() -> None:
     client = FakeChatClient(["answer"])
     agent = ResearchAgent(client=client, model="llama-3.3-70b-versatile")
@@ -206,6 +212,20 @@ def test_research_agent_uses_deterministic_temperature_for_grounded_answers() ->
     )
 
     assert client.calls[0]["temperature"] == 0.0
+
+
+def test_research_agent_explicitly_passes_user_question_language() -> None:
+    client = FakeChatClient(["câu trả lời"])
+    agent = ResearchAgent(client=client, model="llama-3.3-70b-versatile")
+
+    agent.generate(
+        "Mô hình RAG dùng bộ nhớ nào?",
+        [Document(page_content="context", metadata={"source": "a.pdf", "page": 1})],
+    )
+
+    user_message = client.calls[0]["messages"][1]["content"]
+    assert "User question language: vi" in user_message
+    assert "Answer language: Vietnamese" in user_message
 
 
 def test_research_agent_streams_tokens_and_returns_sources() -> None:
