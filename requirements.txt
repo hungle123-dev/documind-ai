@@ -3,6 +3,7 @@ openai>=1.0.0
 langgraph>=0.2.0
 langchain>=0.3.0
 langchain-community>=0.3.0
+langchain-chroma>=1.0.0
 langchain-huggingface>=0.1.0
 tenacity>=8.0.0
 
@@ -28,6 +29,7 @@ gradio>=5.0.0
 pydantic-settings>=2.0.0
 python-dotenv>=1.0.0
 loguru>=0.7.0
+truststore>=0.10.4
 
 # Testing
 pytest>=8.0.0

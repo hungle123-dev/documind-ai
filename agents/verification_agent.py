@@ -10,6 +10,14 @@ from .research_agent import build_context
 
 VERIFICATION_PROMPT = (
     "You are a fact-checking agent. Verify the draft answer against the source context.\n"
+    "An answer is supported if it correctly states that the context is insufficient "
+    "and does not add factual claims absent from the context.\n"
+    "When the context includes tables, prefer any linearized table rows because they "
+    "map row labels to values explicitly.\n"
+    "Check exact qualifiers such as base vs big, dataset direction, language pair, "
+    "unit, and time period before deciding a numeric claim is unsupported.\n"
+    "If your Additional Details say the context states or supports the answer, the "
+    "Supported field must be Supported: YES.\n"
     "Respond in this EXACT format:\n"
     "Supported: YES/NO\n"
     "Unsupported Claims: [list or None]\n"
@@ -78,7 +86,25 @@ class VerificationAgent:
         parsed.setdefault("Contradictions", [])
         parsed.setdefault("Relevant", "NO")
         parsed.setdefault("Additional Details", "")
+        self._normalize_self_contradictory_support(parsed)
         return parsed
+
+    def _normalize_self_contradictory_support(self, parsed: dict[str, object]) -> None:
+        details = str(parsed.get("Additional Details", "")).lower()
+        contradictions = parsed.get("Contradictions") or []
+        if parsed.get("Supported") != "NO" or contradictions:
+            return
+        support_phrases = [
+            "context states",
+            "context mentions",
+            "context supports",
+            "provided context states",
+            "provided context mentions",
+            "provided context supports",
+        ]
+        if any(phrase in details for phrase in support_phrases):
+            parsed["Supported"] = "YES"
+            parsed["Unsupported Claims"] = []
 
     def _parse_list(self, value: str) -> list[str]:
         if not value or value.lower() == "none":

@@ -20,4 +20,4 @@ jobs:
       - name: Run tests
         run: python -m pytest tests -q
         env:
-          XAI_API_KEY: xai-test-key
+          GROQ_API_KEY: gsk-test-key

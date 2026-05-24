@@ -10,5 +10,8 @@ venv/
 .DS_Store
 .claude/
 *.pkl
+.pytest-run*/
+.runtime-validation/
+.test-tmp/
 eval/results.json
 eval/ragas_results.json

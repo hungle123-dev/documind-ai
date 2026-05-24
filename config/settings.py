@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     RELEVANCE_MODEL: str = "llama-3.1-8b-instant"
     RESEARCH_MODEL: str = "llama-3.3-70b-versatile"
     RESEARCH_FALLBACK_MODELS: list[str] = ["llama-3.1-8b-instant"]
-    VERIFICATION_MODEL: str = "llama-3.3-70b-versatile"
+    VERIFICATION_MODEL: str = "llama-3.1-8b-instant"
 
     # Document limits
     MAX_FILE_SIZE: int = MAX_FILE_SIZE

@@ -14,6 +14,11 @@ RESEARCH_PROMPT = (
     "Answer the question using ONLY information from the provided context.\n"
     "Do not use outside knowledge.\n"
     "If the context is insufficient, say so explicitly.\n"
+    "For tables and numeric facts: Match row labels, column labels, and qualifiers exactly.\n"
+    "Do not mix values from different rows, columns, models, datasets, languages, or time periods.\n"
+    "If the question asks about one entity, answer only for that entity; mention other entities only "
+    "when explicitly needed to disambiguate.\n"
+    "Never present values for another entity as alternatives to the requested entity.\n"
     "Cite which source supports each claim.\n"
     f"{LANGUAGE_INSTRUCTION}"
 )
@@ -66,7 +71,7 @@ class ResearchAgent:
                 {"role": "system", "content": RESEARCH_PROMPT},
                 {"role": "user", "content": f"Question: {question}\n\nContext:\n{context}"},
             ],
-            temperature=0.3,
+            temperature=0.0,
             max_tokens=1024,
         ).strip()
         if not answer:
@@ -86,7 +91,7 @@ class ResearchAgent:
                 {"role": "system", "content": RESEARCH_PROMPT},
                 {"role": "user", "content": f"Question: {question}\n\nContext:\n{context}"},
             ],
-            temperature=0.3,
+            temperature=0.0,
             max_tokens=1024,
         ):
             yield token, documents

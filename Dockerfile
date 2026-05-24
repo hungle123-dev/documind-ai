@@ -10,7 +10,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir \
     --index-url https://download.pytorch.org/whl/cpu \
     --extra-index-url https://pypi.org/simple \
-    "torch==2.3.1+cpu" \
+    "torch==2.10.0+cpu" \
     && pip install --no-cache-dir -r requirements.txt
 
 COPY . .

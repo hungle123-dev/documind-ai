@@ -50,7 +50,7 @@ Important environment variables:
 - `RELEVANCE_MODEL`: default `llama-3.1-8b-instant`.
 - `RESEARCH_MODEL`: default `llama-3.3-70b-versatile`.
 - `RESEARCH_FALLBACK_MODELS`: default `["llama-3.1-8b-instant"]`.
-- `VERIFICATION_MODEL`: default `llama-3.3-70b-versatile`.
+- `VERIFICATION_MODEL`: default `llama-3.1-8b-instant`.
 - `EMBEDDING_MODEL`: default `intfloat/multilingual-e5-small`.
 - `SERVER_HOST`: default `0.0.0.0`.
 - `SERVER_PORT`: default `7860`.

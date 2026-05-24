@@ -82,6 +82,24 @@ class KeyAwareOpenAI:
         self.instances.append(self)
 
 
+def test_groq_client_configures_system_trust_before_creating_http_client(monkeypatch) -> None:
+    events: list[str] = []
+
+    class RecordingOpenAI:
+        def __init__(self, *, api_key: str, base_url: str) -> None:
+            events.append("client")
+
+    monkeypatch.setattr("agents.llm_client.OpenAI", RecordingOpenAI)
+    monkeypatch.setattr(
+        "agents.llm_client.configure_system_trust_store",
+        lambda: events.append("trust"),
+    )
+
+    GroqClient(api_key="gsk-test")
+
+    assert events == ["trust", "client"]
+
+
 def test_groq_client_falls_back_to_second_api_key_on_rate_limit(monkeypatch) -> None:
     KeyAwareOpenAI.instances = []
     monkeypatch.setattr("agents.llm_client.OpenAI", KeyAwareOpenAI)

@@ -6,6 +6,7 @@ from typing import Any
 import gradio as gr
 from langchain_core.documents import Document
 
+from agents.query_expander import QueryExpander
 from agents.workflow import AgentWorkflow
 from config.settings import settings
 from document_processor.file_handler import DocumentProcessor
@@ -69,11 +70,11 @@ def process_question_stream(
             state["file_hashes"] = current_hashes
 
         yield "Retrieving evidence and generating answer...", "", "", state
-        result = workflow.full_pipeline(question=question, retriever=state["retriever"])
-        answer = str(result.get("draft_answer", ""))
-        verification = str(result.get("verification_report", ""))
-        sources = format_sources(result.get("source_docs", []))
-        yield answer, verification, sources, state
+        for result in workflow.stream_pipeline(question=question, retriever=state["retriever"]):
+            answer = str(result.get("draft_answer", ""))
+            verification = str(result.get("verification_report", ""))
+            sources = format_sources(result.get("source_docs", []))
+            yield answer, verification, sources, state
     except Exception as exc:
         logger.exception(f"Processing error: {exc}")
         yield f"Error: {exc}", "", "", state
@@ -81,7 +82,7 @@ def process_question_stream(
 
 def main() -> None:
     processor = DocumentProcessor()
-    retriever_builder = RetrieverBuilder()
+    retriever_builder = RetrieverBuilder(query_expander=QueryExpander().expand)
     workflow = AgentWorkflow()
 
     css = """

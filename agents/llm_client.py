@@ -5,6 +5,7 @@ from openai import APIConnectionError, AuthenticationError, OpenAI, PermissionDe
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 from config.settings import settings
+from utils.network import configure_system_trust_store
 
 
 class ChatClient(Protocol):
@@ -43,6 +44,7 @@ class GroqClient:
         if not self.api_keys:
             raise RuntimeError("GROQ_API_KEY or GROQ_API_KEYS is required for live Groq requests.")
 
+        configure_system_trust_store()
         self.clients = [OpenAI(api_key=key, base_url=self.base_url) for key in self.api_keys]
         # Backward-compatible test seam: tests may replace `client` directly.
         self.client = self.clients[0]

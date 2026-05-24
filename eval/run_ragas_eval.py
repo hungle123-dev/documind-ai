@@ -2,6 +2,8 @@ import argparse
 import json
 from pathlib import Path
 
+from loguru import logger
+
 
 def load_rows(path: Path) -> list[dict]:
     rows = json.loads(path.read_text(encoding="utf-8"))
@@ -37,7 +39,7 @@ def main() -> None:
     output = Path(args.output)
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(results, indent=2, ensure_ascii=False), encoding="utf-8")
-    print(f"Wrote RAGAS results to {output}")
+    logger.info("Wrote RAGAS results to {}", output)
 
 
 if __name__ == "__main__":

@@ -9,7 +9,7 @@ def test_settings_exposes_groq_and_retrieval_defaults() -> None:
     assert settings.RELEVANCE_MODEL == "llama-3.1-8b-instant"
     assert settings.RESEARCH_MODEL == "llama-3.3-70b-versatile"
     assert settings.RESEARCH_FALLBACK_MODELS == ["llama-3.1-8b-instant"]
-    assert settings.VERIFICATION_MODEL == "llama-3.3-70b-versatile"
+    assert settings.VERIFICATION_MODEL == "llama-3.1-8b-instant"
     assert settings.EMBEDDING_MODEL == "intfloat/multilingual-e5-small"
     assert settings.RERANKER_MODEL == "cross-encoder/mmarco-mMiniLMv2-L12-H384-v1"
     assert settings.VECTOR_SEARCH_K == 15

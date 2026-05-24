@@ -5,8 +5,9 @@ from typing import Callable, Protocol
 from langchain_core.documents import Document
 
 from config.settings import settings
-from utils.language import vi_tokenizer
+from utils.language import detect_language, vi_tokenizer
 from utils.logging import logger
+from utils.network import configure_system_trust_store
 
 
 class VectorFactory(Protocol):
@@ -15,6 +16,7 @@ class VectorFactory(Protocol):
 
 
 Reranker = Callable[[str, list[Document], int], list[Document]]
+QueryExpansionFunction = Callable[[str], list[str]]
 
 
 def combined_file_hash(file_hashes: list[str]) -> str:
@@ -35,6 +37,7 @@ def dedupe_documents(documents: list[Document]) -> list[Document]:
 
 class E5Embeddings:
     def __init__(self, model_name: str | None = None) -> None:
+        configure_system_trust_store()
         from langchain_huggingface import HuggingFaceEmbeddings
 
         self.embeddings = HuggingFaceEmbeddings(
@@ -56,7 +59,7 @@ class ChromaVectorFactory:
         self.embeddings = embeddings or E5Embeddings()
 
     def load_or_build(self, docs: list[Document], persist_directory: str):
-        from langchain_community.vectorstores import Chroma
+        from langchain_chroma import Chroma
 
         persist_path = Path(persist_directory)
         if persist_path.exists() and any(persist_path.iterdir()):
@@ -93,6 +96,7 @@ class BM25Index:
 
 class CrossEncoderReranker:
     def __init__(self, model_name: str | None = None) -> None:
+        configure_system_trust_store()
         from sentence_transformers import CrossEncoder
 
         self.model = CrossEncoder(model_name or settings.RERANKER_MODEL)
@@ -114,6 +118,7 @@ class HybridRetriever:
         reranker: Reranker,
         search_k: int,
         top_n: int,
+        query_expander: QueryExpansionFunction | None = None,
     ) -> None:
         self.docs = docs
         self.vector_retriever = vector_store.as_retriever(search_kwargs={"k": search_k})
@@ -121,13 +126,50 @@ class HybridRetriever:
         self.reranker = reranker
         self.search_k = search_k
         self.top_n = top_n
+        self.query_expander = query_expander
 
     def invoke(self, query: str) -> list[Document]:
-        candidates: list[Document] = []
-        candidates.extend(self.bm25.invoke(query, self.search_k))
-        candidates.extend(self.vector_retriever.invoke(query))
-        deduped = dedupe_documents(candidates)
-        return self.reranker(query, deduped, self.top_n)
+        queries = self.query_expander(query) if self.query_expander else [query]
+        ranked_per_query: list[list[Document]] = []
+        for candidate_query in dict.fromkeys(queries):
+            candidates: list[Document] = []
+            candidates.extend(self.bm25.invoke(candidate_query, self.search_k))
+            candidates.extend(self.vector_retriever.invoke(candidate_query))
+            deduped = dedupe_documents(candidates)
+            ranked_per_query.append(self.reranker(candidate_query, deduped, self.top_n))
+        if detect_language(query) == "en":
+            return self._merge_primary_first(ranked_per_query)
+        return self._merge_round_robin(ranked_per_query)
+
+    def _merge_primary_first(self, ranked_per_query: list[list[Document]]) -> list[Document]:
+        merged: list[Document] = []
+        seen: set[str] = set()
+        for ranked_items in ranked_per_query:
+            for doc in ranked_items:
+                if doc.page_content in seen:
+                    continue
+                merged.append(doc)
+                seen.add(doc.page_content)
+                if len(merged) == self.top_n:
+                    return merged
+        return merged
+
+    def _merge_round_robin(self, ranked_per_query: list[list[Document]]) -> list[Document]:
+        merged: list[Document] = []
+        seen: set[str] = set()
+        max_length = max((len(items) for items in ranked_per_query), default=0)
+        for rank_index in range(max_length):
+            for ranked_items in ranked_per_query:
+                if rank_index >= len(ranked_items):
+                    continue
+                doc = ranked_items[rank_index]
+                if doc.page_content in seen:
+                    continue
+                merged.append(doc)
+                seen.add(doc.page_content)
+                if len(merged) == self.top_n:
+                    return merged
+        return merged
 
 
 class RetrieverBuilder:
@@ -136,18 +178,23 @@ class RetrieverBuilder:
         embeddings=None,
         vector_factory: VectorFactory | None = None,
         reranker: Reranker | None = None,
+        query_expander: QueryExpansionFunction | None = None,
         chroma_root: Path | str | None = None,
     ) -> None:
         self.embeddings = embeddings
         self.vector_factory = vector_factory
         self.reranker = reranker
+        self.query_expander = query_expander
         self.chroma_root = Path(chroma_root or settings.CHROMA_DB_PATH)
 
     def build_hybrid_retriever(self, docs: list[Document]) -> HybridRetriever:
         if not docs:
             raise ValueError("Cannot build retriever without documents.")
 
-        file_hashes = [str(doc.metadata.get("file_hash", "")) for doc in docs]
+        file_hashes = [
+            f"{doc.metadata.get('file_hash', '')}:schema:{doc.metadata.get('processor_schema_version', '')}"
+            for doc in docs
+        ]
         persist_directory = self.chroma_root / combined_file_hash(file_hashes)
         vector_factory = self.vector_factory or ChromaVectorFactory(embeddings=self.embeddings)
         reranker = self.reranker or CrossEncoderReranker()
@@ -159,4 +206,5 @@ class RetrieverBuilder:
             reranker=reranker,
             search_k=settings.VECTOR_SEARCH_K,
             top_n=settings.RERANKER_TOP_N,
+            query_expander=self.query_expander,
         )
