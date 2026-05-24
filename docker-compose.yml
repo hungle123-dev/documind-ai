@@ -1,6 +1,9 @@
 services:
   documind-ai:
-    build: .
+    build:
+      context: .
+      args:
+        PIP_TRUSTED_HOSTS: "--trusted-host download.pytorch.org --trusted-host download-r2.pytorch.org --trusted-host pypi.org --trusted-host files.pythonhosted.org"
     ports:
       - "7860:7860"
     env_file:

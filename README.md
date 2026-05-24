@@ -1,3 +1,15 @@
+---
+title: DocuMind AI
+emoji: 📚
+colorFrom: blue
+colorTo: indigo
+sdk: gradio
+sdk_version: 6.14.0
+app_file: app.py
+pinned: false
+license: mit
+---
+
 # DocuMind AI
 
 DocuMind AI is a multilingual document question-answering app for Vietnamese and English files. It combines lightweight document parsing, hybrid retrieval, local multilingual embeddings, Groq-powered agents, answer verification, and source citations.
